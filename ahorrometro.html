@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ahorrómetro — objetivo piso</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121933; --muted:#8aa0ff; --text:#e8ecff; --accent:#7cf4a0; --warn:#ffb86b; --danger:#ff7b7b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
+      background: radial-gradient(1200px 600px at 80% -10%, #1a2160 0%, #0b1020 60%), var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:16px 20px; display:flex; align-items:center; gap:12px; justify-content:space-between; backdrop-filter:saturate(1.2) blur(4px);
+      position:sticky; top:0; z-index:10; background:rgba(11,16,32,.6); border-bottom:1px solid rgba(255,255,255,.06)
+    }
+    .logo{font-weight:700; letter-spacing:.2px}
+    .wrap{max-width:1100px; margin:0 auto; padding:18px}
+    .grid{display:grid; gap:16px}
+    @media(min-width:900px){ .grid{ grid-template-columns: 1.1fr 1fr } }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px; padding:16px; box-shadow:0 12px 30px rgba(0,0,0,.25);
+    }
+    h2{margin:0 0 8px; font-size:1.05rem; color:#cfe0ff}
+    label{display:block; font-size:.9rem; color:#c7d1ff; margin:8px 0 6px}
+    input, select, button, textarea{
+      width:100%; padding:10px 12px; border-radius:10px; background:#0e1430; color:var(--text);
+      border:1px solid rgba(255,255,255,.12); outline:none;
+    }
+    input:focus, textarea:focus{ border-color:#7aa2ff; box-shadow:0 0 0 3px rgba(122,162,255,.15) }
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .pill{display:inline-block; padding:6px 10px; font-size:.85rem; border-radius:999px; background:#0e1430; border:1px solid rgba(255,255,255,.1); color:#cfe0ff}
+    .muted{color:#b7c2ff}
+    .accent{color:var(--accent)}
+    .warn{color:var(--warn)}
+    .danger{color:var(--danger)}
+    .big{font-size:1.6rem; font-weight:700}
+    .stack{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .btn{cursor:pointer; transition:.2s transform}
+    .btn:hover{transform:translateY(-1px)}
+    table{width:100%; border-collapse:collapse; margin-top:10px}
+    th, td{padding:8px 6px; text-align:left; border-bottom:1px solid rgba(255,255,255,.08); font-size:.92rem}
+    th{color:#cfe0ff; font-weight:600}
+    .right{text-align:right}
+    .progress{height:10px; width:100%; background:#0e1430; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.1)}
+    .bar{height:100%; background:linear-gradient(90deg, #7cf4a0, #62d2ff)}
+    .footnote{font-size:.82rem; opacity:.9}
+    .chip{padding:4px 8px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); color:#cfe0ff; font-size:.8rem}
+    .danger-outline{border-color:rgba(255,123,123,.5)}
+    .success{color:#7cf4a0}
+    .spacer{height:6px}
+    .note{font-size:.9rem; color:#dfe7ff}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">🏦 Ahorrómetro <span class="pill">MVP</span></div>
+    <div class="stack">
+      <span class="chip" id="nowText">--:--</span>
+      <button id="exportBtn" class="btn pill">Exportar datos</button>
+      <input type="file" id="importFile" style="display:none" accept="application/json">
+      <button id="importBtn" class="btn pill">Importar</button>
+      <button id="resetBtn" class="btn pill danger-outline">Reset</button>
+    </div>
+  </header>
+
+  <div class="wrap grid">
+    <section class="card">
+      <h2>Tu plan</h2>
+      <p class="note">Rellena tus datos base. Todo se guarda en tu navegador (localStorage). Puedes exportar/importar JSON.</p>
+      <div class="row">
+        <div>
+          <label>Salario neto mensual (€)</label>
+          <input type="number" id="income" placeholder="p.ej. 2.500" min="0" step="0.01">
+        </div>
+        <div>
+          <label>Gastos fijos mensuales (€)</label>
+          <input type="number" id="fixed" placeholder="alquiler, comida, gimnasio..." min="0" step="0.01">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Ahorros actuales (€)</label>
+          <input type="number" id="currentSavings" placeholder="p.ej. 12.000" min="0" step="0.01">
+        </div>
+        <div>
+          <label>Objetivo de ahorro (€)</label>
+          <input type="number" id="goal" placeholder="150000" min="0" step="1">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Fecha objetivo (hipoteca)</label>
+          <input type="date" id="targetDate">
+        </div>
+        <div>
+          <label>Horas de trabajo al mes (estimado)</label>
+          <input type="number" id="hoursPerMonth" placeholder="p.ej. 160" min="1" step="1">
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="row">
+        <div>
+          <button id="savePlan" class="btn pill">💾 Guardar plan</button>
+        </div>
+        <div class="right">
+          <span class="muted footnote">Consejo: para el objetivo de vivienda en España suele requerirse entrada ~20% + impuestos ~10‑12%.</span>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div id="planSummary"></div>
+    </section>
+
+    <section class="card">
+      <h2>Progreso y límites</h2>
+      <div class="stack">
+        <div>
+          <div class="muted">Dinero acumulado este mes (prorrateado):</div>
+          <div class="big accent" id="earnedSoFar">—</div>
+        </div>
+        <div>
+          <div class="muted">Ahorro mensual necesario para llegar al objetivo:</div>
+          <div class="big" id="neededMonthly">—</div>
+        </div>
+        <div>
+          <div class="muted">Presupuesto extra semanal (discrecional):</div>
+          <div class="big" id="weeklyAllowance">—</div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="progress"><div id="goalBar" class="bar" style="width:0%"></div></div>
+      <div class="muted footnote">Progreso hacia el objetivo &nbsp;<span id="goalPct">0%</span></div>
+      <canvas id="weeklyChart" width="800" height="180" style="width:100%; margin-top:12px; background:#0e1430; border:1px solid rgba(255,255,255,.08); border-radius:10px;"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>Apuntar un gasto</h2>
+      <div class="row">
+        <div>
+          <label>Concepto</label>
+          <input type="text" id="spendNote" placeholder="p.ej. Cena viernes">
+        </div>
+        <div>
+          <label>Importe (€)</label>
+          <input type="number" id="spendAmount" min="0" step="0.01" placeholder="p.ej. 18.50">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="spendDate">
+        </div>
+        <div>
+          <label>Categoría</label>
+          <select id="spendCat">
+            <option value="ocio">Ocio</option>
+            <option value="restauración">Restauración</option>
+            <option value="transporte">Transporte</option>
+            <option value="otros">Otros</option>
+          </select>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="row">
+        <button id="addSpend" class="btn pill">➕ Añadir gasto</button>
+        <div class="right"><span class="pill" id="weeklyLeft">Semana: — restantes</span></div>
+      </div>
+      <table id="spendTable">
+        <thead>
+          <tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th class="right">Importe</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Notas rápidas</h2>
+      <textarea id="notes" rows="6" placeholder="Escribe recordatorios financieros, próximos gastos, etc."></textarea>
+    </section>
+  </div>
+
+  <script>
+    const fmt = n => n?.toLocaleString('es-ES',{style:'currency',currency:'EUR'}) ?? '—';
+    const dayjs = { // tiny helpers without deps
+      startOfMonth(d){ const x=new Date(d.getFullYear(), d.getMonth(), 1, 0,0,0); return x; },
+      endOfMonth(d){ const x=new Date(d.getFullYear(), d.getMonth()+1, 0, 23,59,59); return x; },
+      diffMs(a,b){ return a.getTime()-b.getTime(); },
+      clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+    };
+
+    const store = {
+      load(){
+        try{ return JSON.parse(localStorage.getItem('ahorrometro')||'{}'); }catch(_){ return {}; }
+      },
+      save(data){
+        localStorage.setItem('ahorrometro', JSON.stringify(data));
+      }
+    };
+
+    const state = {
+      data: { income:0, fixed:0, currentSavings:0, goal:150000, targetDate:null, hoursPerMonth:160, spends:[], notes:'' }
+    };
+
+    function init(){
+      const saved = store.load();
+      state.data = Object.assign(state.data, saved);
+      // bind inputs
+      for (const k of ['income','fixed','currentSavings','goal','hoursPerMonth']){
+        const el = document.getElementById(k);
+        el.value = state.data[k] ?? '';
+      }
+      if (state.data.targetDate) document.getElementById('targetDate').value = state.data.targetDate;
+      if (state.data.notes) document.getElementById('notes').value = state.data.notes;
+
+      document.getElementById('savePlan').addEventListener('click', onSave);
+      document.getElementById('addSpend').addEventListener('click', onAddSpend);
+      document.getElementById('resetBtn').addEventListener('click', onReset);
+      document.getElementById('exportBtn').addEventListener('click', onExport);
+      document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
+      document.getElementById('importFile').addEventListener('change', onImport);
+      document.getElementById('notes').addEventListener('input', ()=>{ state.data.notes = document.getElementById('notes').value; persist(); });
+
+      document.getElementById('spendDate').valueAsDate = new Date();
+      tickClock();
+      setInterval(tickClock, 1000);
+      render();
+    }
+
+    function onSave(){
+      for (const k of ['income','fixed','currentSavings','goal','hoursPerMonth']){
+        state.data[k] = parseFloat(document.getElementById(k).value||'0');
+      }
+      state.data.targetDate = document.getElementById('targetDate').value || null;
+      persist();
+      render();
+    }
+
+    function persist(){ store.save(state.data); }
+
+    function onAddSpend(){
+      const amount = parseFloat(document.getElementById('spendAmount').value||'0');
+      const note = (document.getElementById('spendNote').value||'').trim() || 'Gasto';
+      const date = document.getElementById('spendDate').value || new Date().toISOString().slice(0,10);
+      const cat = document.getElementById('spendCat').value || 'otros';
+      if (amount<=0 || !isFinite(amount)) { alert('Importe no válido'); return; }
+      state.data.spends.push({ id: crypto.randomUUID(), amount, note, date, cat });
+      document.getElementById('spendAmount').value = '';
+      document.getElementById('spendNote').value = '';
+      persist();
+      render();
+    }
+
+    function delSpend(id){
+      state.data.spends = state.data.spends.filter(x=>x.id!==id);
+      persist(); render();
+    }
+
+    function tickClock(){
+      const now = new Date();
+      const s = now.toLocaleString('es-ES', { dateStyle:'medium', timeStyle:'medium' });
+      document.getElementById('nowText').textContent = s;
+      updateEarnedSoFar(now);
+    }
+
+    function updateEarnedSoFar(now){
+      const income = +state.data.income || 0;
+      if (!income){ document.getElementById('earnedSoFar').textContent = '—'; return; }
+      const start = dayjs.startOfMonth(now);
+      const end = dayjs.endOfMonth(now);
+      const totalMs = end - start + 1; // inclusive-ish
+      const elapsedMs = dayjs.clamp(now - start, 0, totalMs);
+      const earned = income * (elapsedMs / totalMs);
+      document.getElementById('earnedSoFar').textContent = fmt(earned);
+    }
+
+    function monthsBetween(aISO, bDate){
+      if (!aISO) return null;
+      const a = new Date(aISO+'T00:00:00'); const b = bDate;
+      let months = (a.getFullYear()-b.getFullYear())*12 + (a.getMonth()-b.getMonth());
+      const dayDiff = a.getDate()-b.getDate();
+      if (dayDiff<0) months -= 1; // partial month not full
+      return Math.max(0, months);
+    }
+
+    function render(){
+      const d = state.data;
+      // plan summary
+      const planDiv = document.getElementById('planSummary');
+      const today = new Date();
+      const monthsLeft = monthsBetween(d.targetDate, today);
+      const needMonthly = monthsLeft!==null && monthsLeft>0 ? Math.max(0, (d.goal - d.currentSavings) / monthsLeft) : 0;
+      const leftover = Math.max(0, (d.income - d.fixed - needMonthly));
+      const weekly = leftover/4.33;
+      const daily = leftover/30.4;
+
+      planDiv.innerHTML = `
+        <div class="stack">
+          <span class="pill">Meses restantes: <b>${monthsLeft ?? '—'}</b></span>
+          <span class="pill">Ahorro mensual objetivo: <b>${fmt(needMonthly)}</b></span>
+          <span class="pill">Resto mensual (gasto libre): <b>${fmt(leftover)}</b></span>
+          <span class="pill">Semanal: <b>${fmt(weekly)}</b></span>
+          <span class="pill">Diario: <b>${fmt(daily)}</b></span>
+          <span class="pill">€/hora (estimado): <b>${ (d.income && d.hoursPerMonth) ? fmt(d.income/d.hoursPerMonth) : '—' }</b></span>
+        </div>
+      `;
+      document.getElementById('neededMonthly').textContent = fmt(needMonthly);
+      document.getElementById('weeklyAllowance').textContent = fmt(weekly);
+
+      // goal progress
+      const pct = d.goal ? Math.max(0, Math.min(100, (d.currentSavings/d.goal)*100)) : 0;
+      document.getElementById('goalBar').style.width = pct.toFixed(1)+'%';
+      document.getElementById('goalPct').textContent = pct.toFixed(1)+'%';
+
+      // spends table
+      const tbody = document.querySelector('#spendTable tbody');
+      tbody.innerHTML = '';
+      const spendsSorted = [...d.spends].sort((a,b)=> a.date<b.date?1:-1);
+      for (const s of spendsSorted){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${s.date}</td><td>${escapeHTML(s.note)}</td><td>${s.cat}</td><td class="right">${fmt(s.amount)}</td>
+                        <td class="right"><button class="btn pill danger-outline" data-del="${s.id}">Borrar</button></td>`;
+        tbody.appendChild(tr);
+      }
+      tbody.querySelectorAll('button[data-del]').forEach(btn=> btn.addEventListener('click', e=> delSpend(e.target.getAttribute('data-del'))));
+
+      // weekly remaining (from Monday to Sunday)
+      const { weekStart, weekEnd } = getWeekBounds(today);
+      const weeklySpends = d.spends.filter(s=>{
+        const t = new Date(s.date+'T00:00:00').getTime();
+        return t>=weekStart.getTime() && t<=weekEnd.getTime();
+      }).reduce((sum,x)=>sum+x.amount,0);
+      const weeklyLeft = Math.max(0, weekly - weeklySpends);
+      document.getElementById('weeklyLeft').textContent = `Semana: ${fmt(weeklyLeft)} restantes`;
+
+      drawWeeklyChart(weekly, weeklySpends);
+    }
+
+    function getWeekBounds(date){
+      const day = date.getDay(); // 0 Sun .. 6 Sat
+      const diffToMonday = (day + 6) % 7; // 0=>Mon
+      const start = new Date(date); start.setDate(date.getDate()-diffToMonday); start.setHours(0,0,0,0);
+      const end = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
+      return { weekStart:start, weekEnd:end };
+    }
+
+    function drawWeeklyChart(allowance, spent){
+      const c = document.getElementById('weeklyChart');
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0,0,c.width,c.height);
+      const pad = 24;
+      // axes
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad, pad);
+      ctx.lineTo(pad, c.height - pad);
+      ctx.lineTo(c.width - pad, c.height - pad);
+      ctx.stroke();
+      // bars
+      const maxVal = Math.max(allowance, spent, 1);
+      const barW = 80;
+      const gap = 60;
+      const baseY = c.height - pad;
+      const scale = (c.height - pad*2) / maxVal;
+
+      function drawBar(x, val, label){
+        const h = val * scale;
+        const y = baseY - h;
+        const grd = ctx.createLinearGradient(0, y, 0, baseY);
+        grd.addColorStop(0, '#7cf4a0');
+        grd.addColorStop(1, '#62d2ff');
+        ctx.fillStyle = grd;
+        ctx.fillRect(x, y, barW, h);
+        ctx.fillStyle = '#cfe0ff';
+        ctx.font = '12px system-ui';
+        ctx.fillText(label, x, baseY + 16);
+        ctx.fillText(fmt(val), x, y - 6);
+      }
+
+      const x1 = pad + 50;
+      const x2 = x1 + barW + gap;
+
+      drawBar(x1, allowance, 'Límite');
+      ctx.fillStyle = '#ff7b7b';
+      const h2 = spent * scale;
+      const y2 = baseY - h2;
+      ctx.fillRect(x2, y2, barW, h2);
+      ctx.fillStyle = '#cfe0ff';
+      ctx.fillText('Gastado', x2, baseY + 16);
+      ctx.fillText(fmt(spent), x2, y2 - 6);
+    }
+
+    function onReset(){
+      if (!confirm('¿Seguro que quieres borrar todos los datos?')) return;
+      localStorage.removeItem('ahorrometro');
+      location.reload();
+    }
+
+    function onExport(){
+      const data = JSON.stringify(state.data, null, 2);
+      const blob = new Blob([data], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'ahorrometro-datos.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+
+    async function onImport(e){
+      const file = e.target.files?.[0]; if (!file) return;
+      const text = await file.text();
+      try{
+        const obj = JSON.parse(text);
+        state.data = Object.assign(state.data, obj);
+        persist(); render();
+        alert('Datos importados');
+      }catch(err){
+        alert('Archivo no válido');
+      } finally {
+        e.target.value = '';
+      }
+    }
+
+    function escapeHTML(str){
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
